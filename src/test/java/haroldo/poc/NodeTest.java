@@ -1,119 +1,137 @@
 package haroldo.poc;
 
-import com.sun.net.httpserver.HttpHandler;
 import haroldo.poc.api.Api;
-import haroldo.poc.api.ApiImpl;
-import haroldo.poc.api.ApiResponse;
-import haroldo.poc.api.DefaultApiResponse;
+import haroldo.poc.api.DefaultApi;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
 public class NodeTest {
+    private int port = 8081;
+    private String uri = "/hello";
+    private String appName = "Hello!";
+
+
     @Test
     public void startListenerTest() throws IOException {
-        Node.createListener(8081);
-        Node.startListener(8081);
-        sleepSeconds(20);
+        System.out.println("Start of starting listener test");
+        Node.createListener(port);
+        Node.startListener(port);
+        assert (TestUtils.isPortOpen(port));
+
+        Node.stopListener(port);
+        assert (!TestUtils.isPortOpen(port));
         System.out.println("End of starting listener test");
     }
 
     @Test
     public void stopListenerTest() throws IOException {
-        Node.startListener(8081);
-        sleepSeconds(10);
-        Node.stopListener(8081);
-        sleepSeconds(20);
+        System.out.println("Start of stopping listener test");
+        Node.startListener(port);
+        assert (TestUtils.isPortOpen(port));
+        Node.stopListener(port);
+        assert (!TestUtils.isPortOpen(port));
         System.out.println("End of stopping listener test");
     }
 
     @Test
     void doubleListenerCreationTest() {
-        Node.createListener(8081);
-        sleepSeconds(1);
+        System.out.println("Start of double listener test");
+        Node.createListener(port);
+        Node.createListener(port);
 
-        Node.createListener(8081);
-        sleepSeconds(20);
+        assert (!TestUtils.isPortOpen(port));
+
+        Node.stopListener(port);
+        assert (!TestUtils.isPortOpen(port));
         System.out.println("End of double listener test");
     }
 
     @Test
     void deployApplicationTest() {
-        Node.createListener(8081);
+        System.out.println("Start of deploying application test");
 
-        Api api = new ApiImpl("/hello", 10);
-        ApiResponse apiResponse = new DefaultApiResponse("Hello World!", api.getAvgResponseTimeMs());
-        HttpHandler httpHandler = new DefaultHttpHandler(10, apiResponse);
-        DeployedApplication deployedApplication = new DeployedApplication("Hello", api, httpHandler);
-        Node.deployApplication(8081, deployedApplication);
+        Api api = new DefaultApi(uri, "Hello World!", 100);
+        DeployableApplication deployableApplication = new DeployableApplication("Hello", api, 10);
 
-        sleepSeconds(20);
+        Node.createListener(port);
+        Node.deployApplication(port, deployableApplication);
+
         System.out.println("End of deploy application test");
+
     }
 
     @Test
     void undeployApplicationTest() {
-        Node.createListener(8081);
+        System.out.println("Start of undeploying application test");
 
-        Api api = new ApiImpl("/hello", 10);
-        ApiResponse apiResponse = new DefaultApiResponse("Hello World!", api.getAvgResponseTimeMs());
-        HttpHandler httpHandler = new DefaultHttpHandler(10, apiResponse);
-        DeployedApplication deployedApplication = new DeployedApplication("Hello", api, httpHandler);
-        Node.deployApplication(8081, deployedApplication);
+        Api api = new DefaultApi(uri, "Hello World!", 100);
+        DeployableApplication deployableApplication = new DeployableApplication("Hello", api, 10);
 
-        Node.undeployApplication(8081, deployedApplication.getName());
-        Node.stopApplication(8081, deployedApplication.getName());
-        sleepSeconds(20);
+        Node.createListener(port);
+        Node.deployApplication(port, deployableApplication);
+
+        Node.undeployApplication(port, deployableApplication.getName());
+        Node.stopApplication(port, deployableApplication.getName());
 
         System.out.println("End of undeploy application test");
     }
 
     @Test
     void startApplicationTest() throws IOException {
-        createAndStartApplication(8081, "Hello!", "/hello");
+        System.out.println("Start of starting application test");
+        createAndStartApplication(port, appName, uri);
 
-        sleepSeconds(20);
+        Node.stopListener(port);
+        assert (!TestUtils.isEndpointResponding(port, uri));
+        assert (!TestUtils.isPortOpen(port));
         System.out.println("End of start application test");
     }
 
     @Test
     void startApplicationTwiceTest() throws IOException {
-        createAndStartApplication(8081, "Hello!", "/hello");
+        System.out.println("Start of starting application test");
+        createAndStartApplication(port, appName, uri);
         try {
-            Node.startApplication(8081, "Hello!");
+            Node.startApplication(port, appName);
             assert (false);
         } catch (IllegalArgumentException e) {
-            assert(true);
+            assert (true);
         }
 
+        Node.stopListener(port);
+        assert (!TestUtils.isPortOpen(port));
         System.out.println("End of start application twice test");
     }
 
     @Test
     void stopApplicationTest() throws IOException {
-        createAndStartApplication(8081, "Hello!", "/hello");
-        sleepSeconds(10);
+        System.out.println("Start of stopping application test");
+        createAndStartApplication(port, appName, uri);
 
-        Node.stopApplication(8081, "Hello!");
-        sleepSeconds(20);
+        Node.stopApplication(port, appName);
+        TestUtils.sleepSeconds(1);
+        assert (!TestUtils.isEndpointResponding(port, uri));
 
+        Node.stopListener(port);
+        assert (!TestUtils.isPortOpen(port));
         System.out.println("End of stop application test");
     }
 
     private void createAndStartApplication(int port, String name, String uri) throws IOException {
+        assert (!TestUtils.isPortOpen(port));
+        assert (!TestUtils.isEndpointResponding(port, uri));
+
+        Api api = new DefaultApi(uri);
+        DeployableApplication deployableApplication = new DeployableApplication(name, api, 10);
+
         Node.startListener(port);
+        assert (TestUtils.isPortOpen(port));
 
-        Api api = new ApiImpl(uri, 10);
-        ApiResponse apiResponse = new DefaultApiResponse("Hello World!", api.getAvgResponseTimeMs());
-        HttpHandler httpHandler = new DefaultHttpHandler(10, apiResponse);
-        DeployedApplication deployedApplication = new DeployedApplication(name, api, httpHandler);
-        Node.deployApplication(port, deployedApplication);
+        Node.deployApplication(port, deployableApplication);
         Node.startApplication(port, name);
+        assert (TestUtils.isPortOpen(port));
+        assert (TestUtils.isEndpointResponding(port, uri));
     }
 
-    private void sleepSeconds(int seconds) {
-        try {
-            Thread.sleep(seconds * 1000L);
-        } catch (InterruptedException e) {}
-    }
 }

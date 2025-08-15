@@ -41,13 +41,13 @@ public class Node {
         System.out.println("Listener stopped on port " + port);
     }
 
-    public static void deployApplication(int port, DeployedApplication deployedApplication) {
-        System.out.println("Deploying application " + deployedApplication.getName() + " on port " + port);
+    public static void deployApplication(int port, DeployableApplication deployableApplication) {
+        System.out.println("Deploying application " + deployableApplication.getName() + " on port " + port);
         Listener listener = listenerList.get(port);
         if (listener == null)
             return;
-        listener.deployApplication(deployedApplication);
-        System.out.println("Application " + deployedApplication.getName() + " deployed on port " + port);
+        listener.deployApplication(deployableApplication);
+        System.out.println("Application " + deployableApplication.getName() + " deployed on port " + port);
     }
 
     public static void undeployApplication(int port, String name) {

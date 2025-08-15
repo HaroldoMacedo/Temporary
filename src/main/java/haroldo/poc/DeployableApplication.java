@@ -3,15 +3,15 @@ package haroldo.poc;
 import com.sun.net.httpserver.HttpHandler;
 import haroldo.poc.api.Api;
 
-public class DeployedApplication {
+public class DeployableApplication {
     private final String name;
     private final Api api;
     private final HttpHandler httpHandler;
 
-    public DeployedApplication(String name, Api api, HttpHandler httpHandler) {
+    public DeployableApplication(String name, Api api, int maxThroughPutPerSecond) {
         this.name = name;
         this.api = api;
-        this.httpHandler = httpHandler;
+        this.httpHandler = new DefaultHttpHandler(maxThroughPutPerSecond, api.getApiResponse());
     }
 
     public String getName() {

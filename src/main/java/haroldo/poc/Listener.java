@@ -11,7 +11,7 @@ import java.util.concurrent.Executors;
 public class Listener {
     private final int port;
     private HttpServer server;
-    List<DeployedApplication> deployedApplicationList = new ArrayList<>();
+    List<DeployableApplication> deployableApplicationList = new ArrayList<>();
 
     public Listener(int port) {
         this.port = port;
@@ -28,33 +28,33 @@ public class Listener {
         server.stop(1);
     }
 
-    public void deployApplication(DeployedApplication deployedApplication) {
-        deployedApplicationList.add(deployedApplication);
+    public void deployApplication(DeployableApplication deployableApplication) {
+        deployableApplicationList.add(deployableApplication);
     }
 
     public void undeployApplication(String applicationName) {
-        deployedApplicationList.removeIf(deployedApplication -> deployedApplication.getName().equals(applicationName));
+        deployableApplicationList.removeIf(deployableApplication -> deployableApplication.getName().equals(applicationName));
     }
 
     public void startApplication(String applicationName) {
-        DeployedApplication deployedApplication = getApplicationByName(applicationName);
-        if (deployedApplication == null)
+        DeployableApplication deployableApplication = getApplicationByName(applicationName);
+        if (deployableApplication == null)
             return;
 
-        server.createContext(deployedApplication.getApi().getUri(), deployedApplication.getApplicationHandle());
+        server.createContext(deployableApplication.getApi().getUri(), deployableApplication.getApplicationHandle());
     }
 
     public void stopApplication(String applicationName) {
-        DeployedApplication deployedApplication = getApplicationByName(applicationName);
-        if (deployedApplication == null)
+        DeployableApplication deployableApplication = getApplicationByName(applicationName);
+        if (deployableApplication == null)
             return;
 
-        server.removeContext(deployedApplication.getApi().getUri());
+        server.removeContext(deployableApplication.getApi().getUri());
     }
 
-    private DeployedApplication getApplicationByName(String applicationName) {
-        return deployedApplicationList.stream()
-                .filter(deployedApplication -> deployedApplication.getName().equals(applicationName))
+    private DeployableApplication getApplicationByName(String applicationName) {
+        return deployableApplicationList.stream()
+                .filter(deployableApplication -> deployableApplication.getName().equals(applicationName))
                 .findFirst()
                 .orElse(null);
     }
